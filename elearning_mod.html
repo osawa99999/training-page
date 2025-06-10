@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>事業主研修版_労働災害発生時の対応</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+      background-color: #f7f7f7;
+      color: #333;
+    }
+    .hidden {
+      display: none;
+    }
+    .section {
+      max-width: 800px;
+      margin: auto;
+      text-align: center;
+    }
+    .title {
+      background-color: #0078d4;
+      color: white;
+      padding: 1em;
+      border-radius: 8px;
+      margin-bottom: 1em;
+    }
+    input[type="text"] {
+      font-size: 1.2em;
+      padding: 0.5em;
+      width: 80%;
+      max-width: 400px;
+    }
+    button {
+      font-size: 1.2em;
+      padding: 0.6em 1.2em;
+      margin: 1em;
+      cursor: pointer;
+      border-radius: 8px;
+      border: none;
+      background-color: #0078d4;
+      color: white;
+    }
+    button:hover {
+      background-color: #106ebe;
+    }
+    .video-container {
+      position: relative;
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+      background-color: black;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    video {
+      width: 100%;
+      height: auto;
+      display: block;
+      outline: none;
+    }
+    /* シークバーとコントロールを非表示にする - 不要になるが念のため残しておく */
+    video::-webkit-media-controls {
+      display: none !important;
+    }
+    video::-moz-media-controls {
+      display: none !important;
+    }
+    video::-webkit-media-controls-panel {
+      display: none !important;
+    }
+    video::-webkit-media-controls-play-button {
+      display: none !important;
+    }
+    video::-webkit-media-controls-timeline {
+      display: none !important;
+    }
+    video::-webkit-media-controls-current-time-display {
+      display: none !important;
+    }
+    video::-webkit-media-controls-time-remaining-display {
+      display: none !important;
+    }
+    video::-webkit-media-controls-mute-button {
+      display: none !important;
+    }
+    video::-webkit-media-controls-toggle-closed-captions-button {
+      display: none !important;
+    }
+    video::-webkit-media-controls-volume-slider {
+      display: none !important;
+    }
+    video::-webkit-media-controls-fullscreen-button {
+      display: none !important;
+    }
+    #confirmationCode {
+      font-weight: bold;
+      font-size: 1.4em;
+      margin-top: 1em;
+      background-color: #e9e9e9;
+      padding: 0.5em;
+      border-radius: 6px;
+      display: inline-block;
+    }
+    /* レスポンシブ対応 */
+    @media (max-width: 768px) {
+      input[type="text"], button {
+        width: 90%;
+        max-width: none;
+      }
+      .section {
+        max-width: 95%;
+      }
+      .video-container {
+        max-width: 100%;
+      }
+    }
+    @media (max-width: 480px) {
+      body {
+        margin: 10px;
+      }
+      .title h2 {
+        font-size: 1.2em;
+      }
+      button {
+        font-size: 1em;
+        padding: 0.5em 1em;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="section">
+  <div class="title">
+    <h2>事業主研修版_労働災害発生時の対応</h2>
+  </div>
+</div>
+
+<div class="section" id="nameSection">
+  <p>あなたの名前を入力してください</p>
+  <input type="text" id="userName" placeholder="例: 安全 太郎" />
+  <br />
+  <button onclick="startVideo()">▶ 動画を開始する</button>
+</div>
+
+<div class="section hidden" id="videoSection">
+  <div class="video-container">
+    <video
+      id="trainingVideo"
+      playsinline
+      controls="false"  controlslist="nodownload nofullscreen noremoteplayback"
+      disablePictureInPicture
+      oncontextmenu="return false;"
+    >
+      <source src="training.mp4" type="video/mp4" />
+      お使いのブラウザは video タグをサポートしていません。
+    </video>
+  </div>
+  <div id="customControls">
+    <button onclick="togglePlayback()">⏯️ 一時停止 / 再開</button>
+  </div>
+</div>
+
+<div class="section hidden" id="resultSection">
+  <h3>動画を最後まで見ていただき、ありがとうございました！</h3>
+  <p>以下の確認コードをコピーして、フォームに入力してください。</p>
+  <div id="confirmationCode"></div>
+  <p style="font-size: 0.9em; margin-top: 0.5em;">※お手数ですが手動でコピーしてください</p>
+  <br />
+  <a href="https://forms.office.com/Pages/ResponsePage.aspx?id=JzxqYJ5BV0iDbmfkVvt5swEJNmwmImFKogaSKMNJmpZUOFBESThDMDVHRkY0OEw4VEhCUE9ZVEU2Ny4u" target="_blank">
+    <button>📄 フォームへ進む</button>
+  </a>
+</div>
+
+<script>
+  let lastKnownTime = 0; // 動画の最終再生時刻を保持する変数
+
+  function startVideo() {
+    const name = document.getElementById("userName").value.trim();
+    if (!name) {
+      alert("名前を入力してください。");
+      return;
+    }
+
+    // 名前入力セクションのみ非表示
+    document.getElementById("nameSection").classList.add("hidden");
+    document.getElementById("videoSection").classList.remove("hidden");
+
+    const video = document.getElementById("trainingVideo");
+
+    // シークバー操作を無効化（既存のものを維持）
+    video.removeAttribute('controls'); // 念のためvideo開始時にcontrols属性を削除
+    
+    // 右クリック無効化（既存のものを維持）
+    video.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+      return false;
+    });
+    
+    // キーボードショートカット無効化（スペースキーなど）（既存のものを維持）
+    video.addEventListener('keydown', function(e) {
+      e.preventDefault();
+      return false;
+    });
+
+    // 動画の再生時刻が更新されるたびにチェック
+    video.addEventListener('timeupdate', function() {
+      // 現在の再生時刻が前回記録した時刻よりも大きく進んでいる場合（早送りされたと判断）
+      // かつ、動画が一時停止中でない場合
+      if (video.currentTime > lastKnownTime + 1 && !video.paused) { // 1秒以上のスキップを検知
+        video.currentTime = lastKnownTime; // 再生位置を元に戻す
+      } else {
+        lastKnownTime = video.currentTime; // 現在の再生時刻を記録
+      }
+    });
+
+    // シーク操作を無効化（既存のものを維持しつつ、timeupdateで強力に制御）
+    video.addEventListener('seeking', function(e) {
+      e.preventDefault();
+      video.currentTime = lastKnownTime; // シーク試行時に直前の位置に戻す
+    });
+    
+    video.play();
+
+    video.addEventListener("ended", () => {
+      document.getElementById("videoSection").classList.add("hidden");
+
+      const code = generateCode(name);
+      document.getElementById("confirmationCode").innerText = code;
+      document.getElementById("resultSection").classList.remove("hidden");
+    });
+  }
+
+  function togglePlayback() {
+    const video = document.getElementById("trainingVideo");
+    if (video.paused) {
+      video.play();
+    } else {
+      video.pause();
+    }
+  }
+
+  function generateCode(name) {
+    const firstCharCode = name.charCodeAt(0);
+    const lastCharCode = name.charCodeAt(name.length - 1);
+    const nameLength = name.length;
+
+    const day = new Date().getMonth() + 1;
+    const dayPlus11 = String(day + 11).padStart(2, "0");
+    const reversedDay = dayPlus11.split("").reverse().join("");
+
+    return `${firstCharCode}-${lastCharCode}-${nameLength}-${reversedDay}`;
+  }
+</script>
+
+</body>
+</html>
