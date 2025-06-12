@@ -103,6 +103,43 @@
       border-radius: 6px;
       display: inline-block;
     }
+
+    /* クイズ関連のスタイル */
+    .quiz-question {
+      font-size: 1.3em;
+      margin-bottom: 1em;
+      font-weight: bold;
+    }
+    .quiz-options button {
+      display: block;
+      width: 80%;
+      margin: 0.8em auto;
+      padding: 0.8em;
+      background-color: #e0e0e0;
+      color: #333;
+      border: 1px solid #ccc;
+      font-size: 1.1em;
+    }
+    .quiz-options button:hover {
+      background-color: #d0d0d0;
+    }
+    .quiz-message {
+      font-size: 1.1em;
+      margin-top: 1em;
+      font-weight: bold;
+    }
+    .quiz-message.correct {
+      color: green;
+    }
+    .quiz-message.incorrect {
+      color: red;
+    }
+    #nextQuestionButton {
+      margin-top: 1em;
+      background-color: #0078d4;
+      color: white;
+    }
+
     /* レスポンシブ対応 */
     @media (max-width: 768px) {
       input[type="text"], button {
@@ -126,6 +163,10 @@
       button {
         font-size: 1em;
         padding: 0.5em 1em;
+      }
+      .quiz-options button {
+        font-size: 1em;
+        padding: 0.6em;
       }
     }
   </style>
@@ -163,8 +204,24 @@
   </div>
 </div>
 
+<div class="section hidden" id="quizIntroSection">
+  <h3>動画視聴完了！</h3>
+  <p>次は動画の理解度チェックを行います。</p>
+  <button onclick="startQuiz()">動画の理解度チェックに進む</button>
+</div>
+
+<div class="section hidden" id="quizSection">
+  <div id="quizContainer">
+    <p>全3問のクイズに全問正解すると、受講完了登録に進めます。</p> 
+    <p class="quiz-question" id="quizQuestion"></p>
+    <div class="quiz-options" id="quizOptions"></div>
+    <div class="quiz-message" id="quizMessage"></div>
+    <button id="nextQuestionButton" onclick="goToNextQuestion()" class="hidden">次へ進む</button>
+  </div>
+</div>
+
 <div class="section hidden" id="resultSection">
-  <h3>動画を最後まで見ていただき、ありがとうございました！</h3>
+  <h3>以上で、今月のe-Learningは終了となります。</h3>
   <p>以下の確認コードをコピーして、フォームに入力してください。</p>
   <div id="confirmationCode"></div>
   <p style="font-size: 0.9em; margin-top: 0.5em; color: red; font-weight: bold;">
@@ -179,11 +236,86 @@
 
 <script>
   let lastKnownTime = 0; // 動画の最終再生時刻を保持する変数
+  let userName = ""; // ユーザー名を保持する変数
+
+  // クイズの問題データ（10問）
+  const quizQuestions = [
+    {
+      question: "労働災害が発生した際、負傷者の救護で最も優先すべきことは何ですか？",
+      options: ["すぐに救急車を呼ぶ", "応急手当を行う", "作業を中断して原因を調べる", "上司に報告する"],
+      answer: "応急手当を行う"
+    },
+    {
+      question: "労働災害発生後の報告義務について、正しいものはどれですか？",
+      options: ["労働基準監督署への報告は任意である", "死傷病報告書は、労働災害発生後速やかに提出する必要がある", "軽微な災害は報告不要である", "報告は会社の人事部が行うものであり、事業主は関与しない"],
+      answer: "死傷病報告書は、労働災害発生後速やかに提出する必要がある"
+    },
+    {
+      question: "労働災害発生時、現場保存の目的として適切なものはどれですか？",
+      options: ["災害発生を隠蔽するため", "原因究明と再発防止のため", "報道機関への情報提供のため", "負傷者の責任を明確にするため"],
+      answer: "原因究明と再発防止のため"
+    },
+    {
+      question: "労働災害が発生した際、事業主がまず行うべき初動対応として最も重要なものは何ですか？",
+      options: ["負傷者の氏名を確認する", "負傷者を安全な場所へ移動させる", "作業員全員を集めて説明会を開く", "災害現場の写真を撮る"],
+      answer: "負傷者を安全な場所へ移動させる"
+    },
+    {
+      question: "労働災害調査の目的として、最も適切なものはどれですか？",
+      options: ["責任の所在を明確にするため", "保険金の請求のため", "類似災害の再発防止のため", "企業イメージを守るため"],
+      answer: "類似災害の再発防止のため"
+    },
+    {
+      question: "労働安全衛生法において、事業主が講ずべき措置として定められているものはどれですか？",
+      options: ["労働者に快適な休憩場所を提供する義務はない", "危険または有害な業務に関する安全衛生教育の実施", "私的な病気の治療費を全額負担する", "労働者の健康診断は年に一度だけで良い"],
+      answer: "危険または有害な業務に関する安全衛生教育の実施"
+    },
+    {
+      question: "労働災害が発生し、作業が中断された場合、作業再開の判断基準として適切なものはどれですか？",
+      options: ["作業員の士気が上がった時", "原因が特定され、安全対策が講じられた後", "負傷者が回復した後", "警察の許可が下りた時"],
+      answer: "原因が特定され、安全対策が講じられた後"
+    },
+    {
+      question: "労働災害防止のためのヒヤリ・ハット活動の目的は何ですか？",
+      options: ["災害の発生を記録すること", "労働者の注意力を試すこと", "事故につながりかねない事象から対策を考えること", "責任の所在を明確にすること"],
+      answer: "事故につながりかねない事象から対策を考えること"
+    },
+    {
+      question: "健康診断の結果、異常があった労働者に対して、事業主が講ずべき措置として正しいものはどれですか？",
+      options: ["直ちに解雇する", "特に措置は必要ない", "医師の意見を聞き、適切な就業上の措置を講じる", "他の部署へ異動させる"],
+      answer: "医師の意見を聞き、適切な就業上の措置を講じる"
+    },
+    {
+      question: "ストレスチェック制度の目的は何ですか？",
+      options: ["労働者のストレスレベルを競わせるため", "労働者の精神的な健康状態を把握し、メンタルヘルス不調を未然に防止するため", "労働者の業務量を増やすため", "会社の雰囲気を良くするため"],
+      answer: "労働者の精神的な健康状態を把握し、メンタルヘルス不調を未然に防止するため"
+    }
+  ];
+
+  let selectedQuizQuestions = []; // 実際に表示する3問を格納
+  let currentQuestionIndex = 0; // 現在表示中のクイズのインデックス
+  let correctAnswersCount = 0; // 正解数
 
   function startVideo() {
-    const name = document.getElementById("userName").value.trim();
-    if (!name) {
+    const nameInput = document.getElementById("userName");
+    userName = nameInput.value.trim(); // ユーザー名をグローバル変数に保存
+
+    // 1. 名前が空欄の場合
+    if (!userName) {
       alert("名前を入力してください。");
+      return;
+    }
+
+    // 2. 名前の文字数チェック（3文字以上を許可）
+    if (userName.length < 3) {
+      alert("名前は3文字以上で入力してください。");
+      return;
+    }
+
+    // 3. 半角文字のチェック（全角ひらがな、カタカナ、漢字のみを許可）
+    const zenkakuRegex = /^[ぁ-んァ-ヶ一-龠]+$/;
+    if (!zenkakuRegex.test(userName)) {
+      alert("名前は全角のひらがな、カタカナ、または漢字で入力してください（半角文字は使用できません）。");
       return;
     }
 
@@ -194,7 +326,7 @@
     const video = document.getElementById("trainingVideo");
 
     // シークバー操作を無効化（既存のものを維持）
-    video.removeAttribute('controls'); // 念のためvideo開始時にcontrols属性を削除
+    video.removeAttribute('controls'); 
     
     // 右クリック無効化（既存のものを維持）
     video.addEventListener('contextmenu', function(e) {
@@ -229,10 +361,7 @@
 
     video.addEventListener("ended", () => {
       document.getElementById("videoSection").classList.add("hidden");
-
-      const code = generateCode(name);
-      document.getElementById("confirmationCode").innerText = code;
-      document.getElementById("resultSection").classList.remove("hidden");
+      document.getElementById("quizIntroSection").classList.remove("hidden"); // クイズ紹介セクションを表示
     });
   }
 
@@ -243,6 +372,123 @@
     } else {
       video.pause();
     }
+  }
+
+  // 配列をシャッフルする関数 (Fisher-Yatesアルゴリズム)
+  function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  }
+
+  function startQuiz() {
+    document.getElementById("quizIntroSection").classList.add("hidden");
+    document.getElementById("quizSection").classList.remove("hidden");
+    
+    // クイズの状態をリセット
+    currentQuestionIndex = 0;
+    correctAnswersCount = 0;
+    document.getElementById("quizMessage").innerText = ""; // メッセージクリア
+    document.getElementById("nextQuestionButton").classList.add("hidden"); // 「次へ進む」ボタンを非表示に
+
+    // 10問からランダムに3問選択
+    selectedQuizQuestions = shuffleArray([...quizQuestions]).slice(0, 3);
+    
+    displayQuestion();
+  }
+
+  function displayQuestion() {
+    const questionContainer = document.getElementById("quizQuestion");
+    const optionsContainer = document.getElementById("quizOptions");
+    const messageContainer = document.getElementById("quizMessage");
+    const nextButton = document.getElementById("nextQuestionButton");
+
+    messageContainer.innerText = ""; // メッセージをクリア
+    nextButton.classList.add("hidden"); // 「次へ進む」ボタンを非表示に
+
+    if (currentQuestionIndex < selectedQuizQuestions.length) {
+      const questionData = selectedQuizQuestions[currentQuestionIndex];
+      questionContainer.innerText = `Q${currentQuestionIndex + 1}. ${questionData.question}`;
+      optionsContainer.innerHTML = ""; // 選択肢をクリア
+
+      // 選択肢をシャッフル
+      const shuffledOptions = shuffleArray([...questionData.options]);
+
+      shuffledOptions.forEach((option, index) => {
+        const button = document.createElement("button");
+        button.innerText = option;
+        button.onclick = () => checkAnswer(option);
+        optionsContainer.appendChild(button);
+      });
+    } else {
+      // 全問解答済みの場合、結果を表示
+      showResult();
+    }
+  }
+
+  function checkAnswer(selectedOption) {
+    const questionData = selectedQuizQuestions[currentQuestionIndex];
+    const messageContainer = document.getElementById("quizMessage");
+    const optionsContainer = document.getElementById("quizOptions");
+    const nextButton = document.getElementById("nextQuestionButton");
+
+    // 全ての選択肢ボタンを無効化
+    Array.from(optionsContainer.children).forEach(button => {
+      button.disabled = true;
+    });
+
+    if (selectedOption === questionData.answer) {
+      correctAnswersCount++;
+      messageContainer.innerText = "正解です！";
+      messageContainer.classList.remove("incorrect");
+      messageContainer.classList.add("correct");
+    } else {
+      messageContainer.innerText = `不正解です。正解は「${questionData.answer}」でした。`;
+      messageContainer.classList.remove("correct");
+      messageContainer.classList.add("incorrect");
+    }
+
+    nextButton.classList.remove("hidden"); // 「次へ進む」ボタンを表示
+  }
+
+  function goToNextQuestion() {
+    currentQuestionIndex++; // 次の質問へインデックスを進める
+    displayQuestion(); // 次の質問を表示
+  }
+
+  function showResult() {
+    const quizSection = document.getElementById("quizSection");
+    const resultSection = document.getElementById("resultSection");
+    const quizContainer = document.getElementById("quizContainer");
+
+    quizSection.classList.add("hidden"); // クイズセクションを非表示に
+
+    if (correctAnswersCount === selectedQuizQuestions.length) {
+      // 全問正解の場合
+      resultSection.classList.remove("hidden");
+      const code = generateCode(userName); // グローバル変数userNameを使用
+      document.getElementById("confirmationCode").innerText = code;
+    } else {
+      // 不正解がある場合
+      resultSection.classList.add("hidden"); // 結果セクションは表示しない
+      quizContainer.innerHTML = `
+        <p>残念！全問正解ではありませんでした。再度クイズに挑戦してください。</p>
+        <button onclick="restartQuiz()">再度クイズに挑戦する</button>
+      `;
+      quizSection.classList.remove("hidden"); // クイズセクションを再度表示
+    }
+  }
+
+  function restartQuiz() {
+    document.getElementById("quizContainer").innerHTML = `
+      <p class="quiz-question" id="quizQuestion"></p>
+      <div class="quiz-options" id="quizOptions"></div>
+      <div class="quiz-message" id="quizMessage"></div>
+      <button id="nextQuestionButton" onclick="goToNextQuestion()" class="hidden">次へ進む</button>
+    `; // クイズのDOMを初期状態に戻す
+    startQuiz(); // クイズを最初から開始
   }
 
   function generateCode(name) {
