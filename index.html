@@ -241,7 +241,7 @@
     ※確認コードをコピーしてから、「受講完了登録に進む」を押してください。
   </p>
   <br />
-  <a href="https://forms.office.com/Pages/ResponsePage.aspx?id=JzxqYJ5BV0iDbmfkVvt5swEJNmwmImFKogaSKMNJmpZUOFBESThDMDVHRkY0OEw4VEhCUE9ZVEU2Ny4u"
+  <a href="https://forms.office.com/r/rMkKr9mU1Z"
      target="_blank" rel="noopener noreferrer">
     <button>📄 受講完了登録に進む</button>
   </a>
@@ -325,9 +325,10 @@
       return;
     }
 
-    // 3. 半角文字のチェック（全角ひらがな、カタカナ、漢字のみを許可）
-    const zenkakuRegex = /^[ぁ-んァ-ヶ一-龠]+$/;
-    if (!zenkakuRegex.test(userName)) {
+    // 3. 日本語文字のチェック（修正版）
+    // ひらがな、カタカナ、漢字、「々」、「ヶ」、「ヵ」、「ヮ」、「ヰ」、「ヱ」、「ヴ」を許可
+    const japaneseRegex = /^[ぁ-んァ-ヶ一-龠々ヵヶヮヰヱヴ]+$/;
+    if (!japaneseRegex.test(userName)) {
       alert("名前は全角のひらがな、カタカナ、または漢字で入力してください（スペースや半角文字は使用できません）。");
       return;
     }
@@ -496,6 +497,7 @@
 
   function restartQuiz() {
     document.getElementById("quizContainer").innerHTML = `
+      <p>全3問のクイズに全問正解すると、受講完了登録に進めます。</p> 
       <p class="quiz-question" id="quizQuestion"></p>
       <div class="quiz-options" id="quizOptions"></div>
       <div class="quiz-message" id="quizMessage"></div>
